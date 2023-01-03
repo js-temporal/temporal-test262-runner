@@ -2,7 +2,7 @@
 # Lightweight runner for ECMAScript Temporal's Test262 tests
 
 This package provides a fast way for polyfills of ECMAScript
-[`Temporal`](https://github.com/tc39/proposal-temporal) to run Temporal's 5,000+
+[`Temporal`](https://github.com/tc39/proposal-temporal) to run Temporal's 6,300+
 Test262 tests. Test262 (https://github.com/tc39/test262) is the official
 conformance test suite for ECMAScript, and this package quickly runs a subset of
 those tests that are specific to Temporal. All Temporal polyfills should pass
@@ -11,7 +11,7 @@ Test262.
 This runner is much faster than
 [`test262-harness`](https://github.com/bterlson/test262-harness) (the default
 Test262 harness) because:
-* It runs only 5000+ Temporal-specific tests, instead of the full suite.
+* It runs only 6,300+ Temporal-specific tests, instead of the full suite.
 * It pre-parses the Temporal polyfill into a
   [`vm.Script`](https://nodejs.org/api/vm.html#class-vmscript), instead of
   reading and parsing the whole file once for each test like the prelude option
