@@ -1,0 +1,29 @@
+{
+  "name": "temporal-test262-runner",
+  "version": "0.1.0",
+  "description": "Lightweight runner for ECMAScript Temporal's Test262 tests",
+  "main": "index.mjs",
+  "scripts": {
+    "test": "echo \"No tests included yet\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/js-temporal/temporal-test262-runner.git"
+  },
+  "keywords": [
+    "temporal",
+    "test262"
+  ],
+  "contributors": [
+    "Justin Grant (https://justingrant.net)",
+    "Philip Chimento (https://ptomato.name)",
+    "Richard Gibson (https://github.com/gibson042)"
+  ],
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "ansi-colors": "^4.1.3",
+    "js-yaml": "^4.1.0",
+    "progress": "^2.0.3",
+    "tiny-glob": "^0.2.9"
+  }
+}
