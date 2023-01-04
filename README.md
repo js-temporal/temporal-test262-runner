@@ -15,7 +15,9 @@ Test262 harness) because:
 * It pre-parses the Temporal polyfill into a
   [`vm.Script`](https://nodejs.org/api/vm.html#class-vmscript), instead of
   reading and parsing the whole file once for each test like the prelude option
-  of `test262-harness` does.
+  of `test262-harness` does. This causes tests to run at least 10x faster.
+
+A typical run of all 6300+ Temporal tests will finish in less than 30 seconds.
 
 For code coverage, set the environment variable `NODE_V8_COVERAGE` to the path
 (relative to the working directory) where coverage metrics should be output.
