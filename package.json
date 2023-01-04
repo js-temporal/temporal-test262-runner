@@ -4,7 +4,7 @@
   "description": "Lightweight runner for ECMAScript Temporal's Test262 tests",
   "main": "index.mjs",
   "scripts": {
-    "test": "echo \"No tests included yet\" && exit 1"
+    "test": "test/test.sh"
   },
   "repository": {
     "type": "git",
