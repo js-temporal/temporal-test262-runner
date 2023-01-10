@@ -49,12 +49,12 @@ process.exit(result ? 0 : 1);
   the global namespace, as well as Temporal-related changes polyfilled into
   `Intl` and `Date` built-in objects.
 * `test262Dir: string` - Root directory of the test262 submodule repo.
-* `testGlobs?: string[]` - If omitted, all tests will be run. This option
-  provides glob patterns that specify a subset of tests to be run. Globs are
-  resolved relative to `test/**/Temporal/` subdirectories of `test262Dir`. If a
-  pattern doesn't match any files relative to `test/**/Temporal/`, it will also
-  try to match relative to the current working directory, so that tab completion
-  works. Example: `[ 'PlainDateTime/**', 'prototype/with/*.js' ]`
+* `testGlobs?: string[]` - If omitted, all Temporal tests will be run. This
+  option provides glob patterns that specify a subset of tests to be run. Globs
+  are resolved relative to `test/**/Temporal/` subdirectories of `test262Dir`.
+  If a pattern doesn't match any files relative to `test/**/Temporal/`, it will
+  also try to match relative to the current working directory, so that tab
+  completion works. Example: `[ 'PlainDateTime/**', 'prototype/with/*.js' ]`
 * `expectedFailureFiles?: string[]` Optional array of text filenames
   that each contain a list of test files (relative to the `test` subdirectory
   of `test262Dir`) that are expected to fail. Lines starting with `#` and
