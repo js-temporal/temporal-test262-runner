@@ -40,9 +40,9 @@ import yaml from 'js-yaml';
  *   the global namespace, as well as Temporal-related changes polyfilled into
  *   `Intl` and `Date` built-in objects.
  * @property {string} test262Dir Root directory of the test262 submodule repo.
- * @property {string[]=} testGlobs If omitted, all tests will be run. This
- *   option provides glob patterns that specify a subset of tests to be run.
- *   Globs are resolved relative to `test/**∕Temporal/` subdirectories of
+ * @property {string[]=} testGlobs If omitted, all Temporal tests will be run.
+ *   This option provides glob patterns that specify a subset of tests to be
+ *   run. Globs are resolved relative to `test/**∕Temporal/` subdirectories of
  *   `test262Dir`. If a pattern doesn't match any files relative to
  *   `test/**∕Temporal/`, it will also try to match relative to the current
  *   working directory, so that tab completion works. Example:
@@ -64,9 +64,9 @@ import yaml from 'js-yaml';
  *     the global namespace, as well as Temporal-related changes polyfilled into
  *     `Intl` and `Date` built-in objects.
  *   - `test262Dir: string` - Root directory of the test262 submodule repo
- *   - `testGlobs?: string[]` - If omitted, all tests will be run. This option
- *     provides glob patterns that specify a subset of tests to be run. Globs
- *     are resolved relative to `test/**∕Temporal/` subdirectories of
+ *   - `testGlobs?: string[]` - If omitted, all Temporal tests will be run. This
+ *     option provides glob patterns that specify a subset of tests to be run.
+ *     Globs are resolved relative to `test/**∕Temporal/` subdirectories of
  *     `test262Dir`. If a pattern doesn't match any files relative to
  *     `test/**∕Temporal/`, it will also try to match relative to the current
  *     working directory, so that tab completion works. Example:
@@ -166,8 +166,10 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
   if (testGlobs.length === 0) {
     [
       path.resolve(testSubdirectory, '**/Temporal/**/*.js'),
+      // e.g. intl402/DateTimeFormat/prototype/format/temporal-objects-resolved-time-zone.js
+      path.resolve(testSubdirectory, 'intl402/**/*[tT]emporal*.js'),
       // "p*" is a workaround because there is no toTemporalInstant dir at this time
-      path.resolve(testSubdirectory, 'built-ins/Date/p*/toTemporalInstant/*.js')
+      path.resolve(testSubdirectory, 'built-ins/Date/p*/toTemporalInstant/*.js')      
     ].forEach((defaultGlob) => globResults.push(...globSync(defaultGlob, GLOB_OPTS)));
   }
 
