@@ -295,8 +295,9 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
   const elapsed = Number(finish - start) / 1_000_000_000;
 
   print(color.underline('\nSummary of results:'));
-
+  let hasFailures = false;
   if (failures.length > 0) {
+    hasFailures = true;
     failures.forEach(({ file, error }) => {
       print(color.yellow(`\n${color.bold('FAIL')}: ${file}`));
       if (error.constructor.name === 'Test262Error') {
@@ -310,6 +311,7 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
   if (unexpectedPasses.length > 0) {
     print(`\n${color.yellow.bold('WARNING:')} Tests passed unexpectedly; remove them from expected-failures.txt?`);
     unexpectedPasses.forEach((file) => print(` \u2022  ${file}`));
+    hasFailures = true;
   }
 
   if (longTests.length > 0) {
@@ -325,7 +327,5 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
   if (expectedFailCount > 0) {
     print(color.cyan(`  ${expectedFailCount} expected failures`));
   }
-
-  return failures.length === 0;
-  // process.exit(failures.length > 0 ? 1 : 0);
+  return !hasFailures;
 }
