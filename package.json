@@ -1,6 +1,6 @@
 {
   "name": "@js-temporal/temporal-test262-runner",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Lightweight runner for ECMAScript Temporal's Test262 tests",
   "main": "index.mjs",
   "scripts": {
