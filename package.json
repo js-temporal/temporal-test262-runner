@@ -17,7 +17,8 @@
   "contributors": [
     "Justin Grant (https://justingrant.net)",
     "Philip Chimento (https://ptomato.name)",
-    "Richard Gibson (https://github.com/gibson042)"
+    "Richard Gibson (https://github.com/gibson042)",
+    "James Wright (https://github.com/12wrigja)"
   ],
   "license": "BSD-3-Clause",
   "dependencies": {
