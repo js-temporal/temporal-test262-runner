@@ -111,18 +111,26 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
   const polyfillCode = fs.readFileSync(polyfillCodeFile, UTF8);
   const polyfill = new vm.Script(polyfillCode, { filename: path.resolve(polyfillCodeFile) });
 
-  let expectedFailures = new Set();
+  let expectedFailureLists = new Map();
   if (expectedFailureFiles) {
     for (const expectedFailureFile of expectedFailureFiles) {
       // Read the expected failures file and put the paths into a Set
-      const files = fs
+      const files = new Set(fs
         .readFileSync(expectedFailureFile, UTF8)
         .split(/\r?\n/g)
-        .filter((line) => line && line[0] !== '#');
-      for (const file of files) {
-        expectedFailures.add(file);
-      }
+        .filter((line) => line && line[0] !== '#'));
+      expectedFailureLists.set(expectedFailureFile, files);
     }
+  }
+
+  // This function returns a list of any expected-failure files that mention the
+  // given test filename, or undefined if no lists reference the given filename.
+  function getRelevantExpectedFailureLists(testFile) {
+    const ret = [];
+    for (const [expectedFailureFile, expectedFailureTestsSet] of expectedFailureLists) {
+      if (expectedFailureTestsSet.has(testFile)) ret.push(expectedFailureFile);
+    }
+    return ret.length > 0 ? ret : undefined;
   }
 
   // This function reads in a test262 harness helper file, specified in 'includes'
@@ -212,13 +220,14 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
   }
 
   const failures = [];
-  const unexpectedPasses = [];
+  // Map from Expected Failure file to a Set of unexpected passing tests
+  const unexpectedPasses = new Map();
   const longTests = [];
   let passCount = 0;
   let expectedFailCount = 0;
+  let unexpectedPassCount = 0;
 
   // === The test loop ===
-
   for (const testFile of testFiles) {
     // Set up the VM context with the polyfill first, as if it were built-in
     const testContext = {};
@@ -255,6 +264,9 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
       .replace('/prototype/', '/p/');
     const progressDisplayName = path.dirname(testDisplayName);
     progress.tick(0, { test: progressDisplayName });
+    // string[] of expected-failure.txt-style files that expect this test to
+    // fail, or undefined if no files expect this testcase to fail
+    const expectedFailureLists = getRelevantExpectedFailureLists(testRelPath);
 
     // Time each test individually in order to report if they take longer than
     // 100 ms
@@ -265,14 +277,20 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
     // end to see if your test failed.
     try {
       vm.runInContext(testCode, testContext);
-      passCount++;
-
-      if (expectedFailures.has(testRelPath)) {
-        unexpectedPasses.push(testRelPath);
+      if (!expectedFailureLists) {
+        passCount++;
+      } else {
+        unexpectedPassCount++;
         progress.interrupt(`UNEXPECTED PASS: ${testDisplayName}`);
+        for (const list of expectedFailureLists) {
+          if (!unexpectedPasses.has(list)) {
+            unexpectedPasses.set(list, new Set());
+          }
+          unexpectedPasses.get(list).add(testRelPath);
+        }
       }
     } catch (e) {
-      if (expectedFailures.has(testRelPath)) {
+      if (expectedFailureLists) {
         expectedFailCount++;
       } else {
         failures.push({ file: testRelPath, error: e });
@@ -308,10 +326,15 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
     });
   }
 
-  if (unexpectedPasses.length > 0) {
-    print(`\n${color.yellow.bold('WARNING:')} Tests passed unexpectedly; remove them from expected-failures.txt?`);
-    unexpectedPasses.forEach((file) => print(` \u2022  ${file}`));
+  if (unexpectedPasses.size > 0) {
     hasFailures = true;
+    print(`\n${color.yellow.bold('WARNING:')} Tests passed unexpectedly; remove them from their respective files?`);
+    for (const [expectedFailureFile, unexpectedPassesSet] of unexpectedPasses) {
+      print(` \u2022  ${expectedFailureFile}:`);
+      for (const unexpectedPass of unexpectedPassesSet) {
+        print(`${unexpectedPass}`);
+      }
+    }
   }
 
   if (longTests.length > 0) {
@@ -324,6 +347,7 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
   print(`\n${total} tests finished in ${color.bold(elapsed.toFixed(1))} s`);
   print(color.green(`  ${passCount} passed`));
   print(color.red(`  ${failures.length} failed`));
+  print(color.red(`  ${unexpectedPassCount} passed unexpectedly`));
   if (expectedFailCount > 0) {
     print(color.cyan(`  ${expectedFailCount} expected failures`));
   }
