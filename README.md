@@ -74,3 +74,9 @@ process.exit(result ? 0 : 1);
   a number before evaluation, which makes it easier for callers to pass
   environment variables as-is. NaN values will silently be assigned the default
   value.
+* updateExpectedFailureFiles?: boolean Used in local development to
+  automatically revise expected-failure files after making code changes that
+  fix test failures, removing tests that were expected to fail but now pass from
+  the expected-failure files. This option does not add newly failing tests to the
+  expected-failure files - this must be done manually. We recommend this option
+  be set using an optional CLI flag for ease of use.
