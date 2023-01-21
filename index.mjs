@@ -143,7 +143,7 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
 
     const includeFile = `test262/harness/${includeName}`;
     const includeCode = fs.readFileSync(includeFile, UTF8);
-    const include = new vm.Script(includeCode);
+    const include = new vm.Script(includeCode, {filename: path.resolve(includeFile)});
 
     helpersCache.set(includeName, include);
     return include;
@@ -235,7 +235,18 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
     polyfill.runInContext(testContext);
 
     // To proceed, we will now need to read the frontmatter
-    const testCode = fs.readFileSync(testFile, UTF8);
+    let testCode = fs.readFileSync(testFile, UTF8);
+    // Various forms of the test's path and filename. testRelPath matches what
+    // is given in the expected failures file. testDisplayName is a slightly
+    // abbreviated form that we use in logging during the run to make it more
+    // likely to fit on one line. progressDisplayName is what's displayed beside
+    // the progress bar: testDisplayName with the actual test filename cut off,
+    // since the individual tests go by too fast to read anyway.
+    const testRelPath = path.relative(testSubdirectory, testFile);
+
+    // Include a sourceURL so that when tests are run in a debugger they can be
+    // found using the names listed in the expected-failures-style files.
+    testCode += `\n//# sourceURL=${testRelPath}`;
 
     const frontmatterString = frontmatterMatcher.exec(testCode)?.[1] ?? '';
     const frontmatter = yaml.load(frontmatterString);
@@ -250,13 +261,6 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
       getHelperScript(includeName).runInContext(testContext);
     });
 
-    // Various forms of the test's path and filename. testRelPath matches what
-    // is given in the expected failures file. testDisplayName is a slightly
-    // abbreviated form that we use in logging during the run to make it more
-    // likely to fit on one line. progressDisplayName is what's displayed beside
-    // the progress bar: testDisplayName with the actual test filename cut off,
-    // since the individual tests go by too fast to read anyway.
-    const testRelPath = path.relative(testSubdirectory, testFile);
     const testDisplayName = testRelPath
       .replace('built-ins/Temporal/', '')
       .replace('intl402/Temporal/', '(intl) ')
