@@ -8,6 +8,9 @@ import util from 'node:util';
 import vm from 'node:vm';
 import yaml from 'js-yaml';
 
+
+const UTF8 = { encoding: 'utf-8' };
+
 /**
  * Temporal Test262 runner
  *
@@ -66,6 +69,11 @@ import yaml from 'js-yaml';
  *   is provided, it'll be parsed into a number before evaluation, which makes
  *   it easier for callers to pass environment variables as-is. NaN values will
  *   silently be assigned the default value.
+ * @property {boolean=} updateExpectedFailureFiles Used in local development to
+ *   automatically revise expected-failure files after making code changes that
+ *   fix test failures, removing tests that were expected to fail but now pass
+ *   from the expected-failure files. This option does not add newly failing
+ *   tests to the expected-failure files - this must be done manually.
  *
  * @param {Options} options Object with the following properties:
  *   - `polyfillCodeFile: string` - Filename of the Temporal polyfill. Must be a
@@ -94,9 +102,14 @@ import yaml from 'js-yaml';
  *     is provided, it'll be parsed into a number before evaluation, which makes
  *     it easier for callers to pass environment variables as-is. NaN values
  *     will silently be assigned the default value.
+ *  - `updateExpectedFailureFiles`: boolean - Used in local development to
+ *     automatically revise expected-failure files after making code changes that
+ *     fix test failures, removing tests that were expected to fail but now pass
+ *     from the expected-failure files. This option does not add newly failing
+ *     tests to the expected-failure files - this must be done manually.
  * @returns {boolean} `true` if all tests completed as expected, `false` if not.
  */
-export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, expectedFailureFiles, timeoutMsecs }) {
+export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, expectedFailureFiles, timeoutMsecs, updateExpectedFailureFiles }) {
 
   // Default timeout is 2 seconds. Set a longer timeout for running tests under
   // a debugger.
@@ -121,7 +134,6 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
   // Front matter consists of a YAML document in between /*--- and ---*/
   const frontmatterMatcher = /\/\*---\n(.*)---\*\//ms;
 
-  const UTF8 = { encoding: 'utf-8' };
   const GLOB_OPTS = { filesOnly: true };
 
   // EX_NOINPUT -- An input file (not a system file) did not exist or was not readable.
@@ -201,7 +213,7 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
       // e.g. intl402/DateTimeFormat/prototype/format/temporal-objects-resolved-time-zone.js
       path.resolve(testSubdirectory, 'intl402/**/*[tT]emporal*.js'),
       // "p*" is a workaround because there is no toTemporalInstant dir at this time
-      path.resolve(testSubdirectory, 'built-ins/Date/p*/toTemporalInstant/*.js')      
+      path.resolve(testSubdirectory, 'built-ins/Date/p*/toTemporalInstant/*.js')
     ].forEach((defaultGlob) => globResults.push(...globSync(defaultGlob, GLOB_OPTS)));
   }
 
@@ -356,8 +368,13 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
 
   if (unexpectedPasses.size > 0) {
     hasFailures = true;
-    print(`\n${color.yellow.bold('WARNING:')} Tests passed unexpectedly; remove them from their respective files?`);
+    if (updateExpectedFailureFiles) {
+      print(`\n${color.yellow.bold('WARNING:')} Tests passed unexpectedly; the following tests have been removed from their respective files:`);
+    } else {
+      print(`\n${color.yellow.bold('WARNING:')} Tests passed unexpectedly; remove them from their respective files?`);
+    }
     for (const [expectedFailureFile, unexpectedPassesSet] of unexpectedPasses) {
+      if (updateExpectedFailureFiles) updateExpectedFailureFile(expectedFailureFile, unexpectedPassesSet);
       print(` \u2022  ${expectedFailureFile}:`);
       for (const unexpectedPass of unexpectedPassesSet) {
         print(`${unexpectedPass}`);
@@ -381,4 +398,12 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
     print(color.cyan(`  ${expectedFailCount} expected failures`));
   }
   return !hasFailures;
+}
+
+function updateExpectedFailureFile(fileName, expectedFailuresInFile) {
+    const linesOnDisk = fs
+        .readFileSync(fileName, UTF8)
+        .split(/\r?\n/g);
+    const output = linesOnDisk.filter(l => !expectedFailuresInFile.has(l));
+    fs.writeFileSync(fileName, output.join('\n'), UTF8);
 }
