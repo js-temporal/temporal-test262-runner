@@ -55,7 +55,7 @@ process.exit(result ? 0 : 1);
   If a pattern doesn't match any files relative to `test/**/Temporal/`, it will
   also try to match relative to the current working directory, so that tab
   completion works. Example: `[ 'PlainDateTime/**', 'prototype/with/*.js' ]`
-* `expectedFailureFiles?: string[]` Optional array of text filenames
+* `expectedFailureFiles?: string[]` - Optional array of text filenames
   that each contain a list of test files (relative to the `test` subdirectory
   of `test262Dir`) that are expected to fail. Lines starting with `#` and
   blank lines are ignored. Lines from multiple files will be concatenated and
@@ -65,6 +65,12 @@ process.exit(result ? 0 : 1);
   built-ins/Temporal/Duration/compare/argument-string-negative-fractional-units.js
   built-ins/Temporal/Duration/from/argument-string-negative-fractional-units.js
   ```
+* `updateExpectedFailureFiles?: boolean` - Used in local development to
+  automatically revise expected-failure files after making code changes that fix
+  test failures, removing tests that were expected to fail but now pass from the
+  expected-failure files. This option does not add newly failing tests to the
+  expected-failure files - this must be done manually. We recommend this option
+  be set using an optional CLI flag for ease of use.
 * `timeoutMsecs?: number|string` - Optional number of milliseconds to allow
   tests to run before they'll be terminated. This ensures that infinite-loop (or
   super-long) tests won't prevent others from completing. Default is 2000 msecs
@@ -74,9 +80,3 @@ process.exit(result ? 0 : 1);
   a number before evaluation, which makes it easier for callers to pass
   environment variables as-is. NaN values will silently be assigned the default
   value.
-* updateExpectedFailureFiles?: boolean Used in local development to
-  automatically revise expected-failure files after making code changes that
-  fix test failures, removing tests that were expected to fail but now pass from
-  the expected-failure files. This option does not add newly failing tests to the
-  expected-failure files - this must be done manually. We recommend this option
-  be set using an optional CLI flag for ease of use.
