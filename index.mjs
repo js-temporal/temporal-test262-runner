@@ -57,6 +57,15 @@ import yaml from 'js-yaml';
  *   built-ins/Temporal/Duration/compare/argument-string-negative-fractional-units.js
  *   built-ins/Temporal/Duration/from/argument-string-negative-fractional-units.js
  *   ```
+ * @property {number|string=2000} timeoutMsecs Optional number of milliseconds
+ *   to allow tests to run before they'll be terminated. This ensures that
+ *   infinite-loop (or super-long) tests won't prevent others from completing.
+ *   Default is 2000 msecs (2 seconds) which should be fine even for slow CI
+ *   systems. But when running tests in a debugger, set the timeout to much
+ *   longer (like 1 hour) so that you'll have time to debug tests. If a string
+ *   is provided, it'll be parsed into a number before evaluation, which makes
+ *   it easier for callers to pass environment variables as-is. NaN values will
+ *   silently be assigned the default value.
  *
  * @param {Options} options Object with the following properties:
  *   - `polyfillCodeFile: string` - Filename of the Temporal polyfill. Must be a
@@ -76,9 +85,24 @@ import yaml from 'js-yaml';
  *     `test262Dir`) that are expected to fail. Lines starting with `#` and
  *     blank lines are ignored. Lines from multiple files will be concatenated
  *     and de-duped.
+ *   - `timeoutMsecs?: number|string` - Optional number of milliseconds to allow
+ *     tests to run before they'll be terminated. This ensures that
+ *     infinite-loop (or super-long) tests won't prevent others from completing.
+ *     Default is 2000 msecs (2 seconds) which should be fine even for slow CI
+ *     systems. But when running tests in a debugger, set the timeout to much
+ *     longer (like 1 hour) so that you'll have time to debug tests. If a string
+ *     is provided, it'll be parsed into a number before evaluation, which makes
+ *     it easier for callers to pass environment variables as-is. NaN values
+ *     will silently be assigned the default value.
  * @returns {boolean} `true` if all tests completed as expected, `false` if not.
  */
-export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, expectedFailureFiles }) {
+export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, expectedFailureFiles, timeoutMsecs }) {
+
+  // Default timeout is 2 seconds. Set a longer timeout for running tests under
+  // a debugger.
+  timeoutMsecs = parseInt(timeoutMsecs);
+  if (typeof timeoutMsecs === 'undefined' || isNaN(timeoutMsecs)) timeoutMsecs = 2000;
+
   // In the test262 repo, the actual tests are contained in a /test directory
   const testSubdirectory = path.resolve(test262Dir, 'test');
 
@@ -280,7 +304,7 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
     // what it's supposed to be. This is so that you don't have to wait until the
     // end to see if your test failed.
     try {
-      vm.runInContext(testCode, testContext);
+      vm.runInContext(testCode, testContext, { timeout: timeoutMsecs });
       if (!expectedFailureLists) {
         passCount++;
       } else {
@@ -344,7 +368,8 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
   if (longTests.length > 0) {
     print('\nThe following tests took a long time:');
     longTests.forEach(({ file, ns }) => {
-      print(`  ${color.yellow(Math.round(Number(ns) / 1_000_000))} ms: ${file}`);
+      const ms = Math.round(Number(ns) / 1_000_000);
+      print(`  ${color.yellow(ms)} ms${ms >= timeoutMsecs ? ' (timeout)' : ''}: ${file}`);
     });
   }
 

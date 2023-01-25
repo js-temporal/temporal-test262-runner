@@ -65,3 +65,12 @@ process.exit(result ? 0 : 1);
   built-ins/Temporal/Duration/compare/argument-string-negative-fractional-units.js
   built-ins/Temporal/Duration/from/argument-string-negative-fractional-units.js
   ```
+* `timeoutMsecs?: number|string` - Optional number of milliseconds to allow
+  tests to run before they'll be terminated. This ensures that infinite-loop (or
+  super-long) tests won't prevent others from completing. Default is 2000 msecs
+  (2 seconds) which should be fine even for slow CI systems. But when running
+  tests in a debugger, set the timeout to much longer (like 1 hour) so that
+  you'll have time to debug tests. If a string is provided, it'll be parsed into
+  a number before evaluation, which makes it easier for callers to pass
+  environment variables as-is. NaN values will silently be assigned the default
+  value.
