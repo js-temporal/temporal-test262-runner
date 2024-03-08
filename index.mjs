@@ -74,6 +74,9 @@ const UTF8 = { encoding: 'utf-8' };
  *   fix test failures, removing tests that were expected to fail but now pass
  *   from the expected-failure files. This option does not add newly failing
  *   tests to the expected-failure files - this must be done manually.
+ * @property {number=} maxFailures Whether to stop executing test files after a
+ *   certain number of failures have been reached. Useful for preventing your
+ *   console from becoming overwhelmed.
  *
  * @param {Options} options Object with the following properties:
  *   - `polyfillCodeFile: string` - Filename of the Temporal polyfill. Must be a
@@ -107,10 +110,20 @@ const UTF8 = { encoding: 'utf-8' };
  *     fix test failures, removing tests that were expected to fail but now pass
  *     from the expected-failure files. This option does not add newly failing
  *     tests to the expected-failure files - this must be done manually.
+ *  - `maxFailures?: number` - Whether to stop executing test files after a
+ *     certain number of failures have been reached. Useful for preventing your
+ *     console from becoming overwhelmed.
  * @returns {boolean} `true` if all tests completed as expected, `false` if not.
  */
-export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, expectedFailureFiles, timeoutMsecs, updateExpectedFailureFiles }) {
-
+export default function runTest262({
+  test262Dir,
+  testGlobs,
+  polyfillCodeFile,
+  expectedFailureFiles,
+  timeoutMsecs,
+  updateExpectedFailureFiles,
+  maxFailures
+}) {
   // Default timeout is 2 seconds. Set a longer timeout for running tests under
   // a debugger.
   timeoutMsecs = parseInt(timeoutMsecs);
@@ -265,9 +278,16 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
   let passCount = 0;
   let expectedFailCount = 0;
   let unexpectedPassCount = 0;
+  let skippedCount = 0;
 
   // === The test loop ===
   for (const testFile of testFiles) {
+    // Skip test if over the max-failure limit
+    if (maxFailures && failures.length >= maxFailures) {
+      skippedCount++;
+      continue;
+    }
+
     // Set up the VM context with the polyfill first, as if it were built-in
     const testContext = {};
     vm.createContext(testContext);
@@ -399,9 +419,14 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
   print(color.green(`  ${passCount} passed`));
   print(color.red(`  ${failures.length} failed`));
   print(color.red(`  ${unexpectedPassCount} passed unexpectedly`));
+
   if (expectedFailCount > 0) {
     print(color.cyan(`  ${expectedFailCount} expected failures`));
   }
+  if (skippedCount > 0) {
+    print(color.grey(`  ${skippedCount} skipped`));
+  }
+
   return !hasFailures;
 }
 
