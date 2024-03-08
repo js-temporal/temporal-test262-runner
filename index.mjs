@@ -377,6 +377,32 @@ export default function runTest262({
     progress.tick(1, { test: progressDisplayName });
   }
 
+  // === Detect expected-failure entries with missing files ===
+
+  const missingTestsMap = new Map();
+  let missingTestsCnt = 0;
+
+  if (testGlobs.length === 0) {
+    const testRelPathSet = new Set(
+      [...testFiles].map((testFile) => path.relative(testSubdirectory, testFile))
+    );
+
+    for (const [expectedFailureFile, expectedFailureTestsSet] of expectedFailureLists) {
+      const missingTestsSet = new Set();
+
+      for (const expectedFailureTest of expectedFailureTestsSet) {
+        if (!testRelPathSet.has(expectedFailureTest)) {
+          missingTestsSet.add(expectedFailureTest);
+          missingTestsCnt++;
+        }
+      }
+
+      if (missingTestsSet.size) {
+        missingTestsMap.set(expectedFailureFile, missingTestsSet);
+      }
+    }
+  }
+
   // === Print results ===
 
   const finish = process.hrtime.bigint();
@@ -405,9 +431,24 @@ export default function runTest262({
     }
     for (const [expectedFailureFile, unexpectedPassesSet] of unexpectedPasses) {
       if (updateExpectedFailureFiles) updateExpectedFailureFile(expectedFailureFile, unexpectedPassesSet);
-      print(` \u2022  ${expectedFailureFile}:`);
+      print(` \u2022 ${expectedFailureFile}:`);
       for (const unexpectedPass of unexpectedPassesSet) {
-        print(`${unexpectedPass}`);
+        print(`   \u2022 ${unexpectedPass}`);
+      }
+    }
+  }
+
+  if (missingTestsMap.size > 0) {
+    if (updateExpectedFailureFiles) {
+      print(`\n${color.yellow.bold('WARNING:')} Test files missing; the following tests have been removed from their respective files:`);
+    } else {
+      print(`\n${color.yellow.bold('WARNING:')} Test files missing; remove them from their respective files?`);
+    }
+    for (const [expectedFailureFile, missingTestsSet] of missingTestsMap) {
+      if (updateExpectedFailureFiles) updateExpectedFailureFile(expectedFailureFile, missingTestsSet);
+      print(` \u2022 ${expectedFailureFile}:`);
+      for (const missingTest of missingTestsSet) {
+        print(`   \u2022 ${missingTest}`);
       }
     }
   }
@@ -428,6 +469,9 @@ export default function runTest262({
   if (expectedFailCount > 0) {
     print(color.cyan(`  ${expectedFailCount} expected failures`));
   }
+  if (missingTestsCnt > 0) {
+    print(color.cyan(`  ${missingTestsCnt} missing tests`));
+  }
   if (skippedCount > 0) {
     print(color.grey(`  ${skippedCount} skipped`));
   }
@@ -435,10 +479,10 @@ export default function runTest262({
   return !hasFailures;
 }
 
-function updateExpectedFailureFile(fileName, expectedFailuresInFile) {
+function updateExpectedFailureFile(fileName, linesForRemoval) {
     const linesOnDisk = fs
         .readFileSync(fileName, UTF8)
         .split(/\r?\n/g);
-    const output = linesOnDisk.filter(l => !expectedFailuresInFile.has(l));
+    const output = linesOnDisk.filter(l => !linesForRemoval.has(l));
     fs.writeFileSync(fileName, output.join('\n'), UTF8);
 }
