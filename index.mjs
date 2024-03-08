@@ -77,6 +77,8 @@ const UTF8 = { encoding: 'utf-8' };
  * @property {number=} maxFailures Whether to stop executing test files after a
  *   certain number of failures have been reached. Useful for preventing your
  *   console from becoming overwhelmed.
+ * @property {boolean=} fullPath Whether to print out the absoulte file paths
+ *   of test files in reports.
  *
  * @param {Options} options Object with the following properties:
  *   - `polyfillCodeFile: string` - Filename of the Temporal polyfill. Must be a
@@ -113,6 +115,8 @@ const UTF8 = { encoding: 'utf-8' };
  *  - `maxFailures?: number` - Whether to stop executing test files after a
  *     certain number of failures have been reached. Useful for preventing your
  *     console from becoming overwhelmed.
+ *  - `fullPath?: boolean` - Whether to print out the absoulte file paths
+ *     of test files in reports.
  * @returns {boolean} `true` if all tests completed as expected, `false` if not.
  */
 export default function runTest262({
@@ -122,7 +126,8 @@ export default function runTest262({
   expectedFailureFiles,
   timeoutMsecs,
   updateExpectedFailureFiles,
-  maxFailures
+  maxFailures,
+  fullPath
 }) {
   // Default timeout is 2 seconds. Set a longer timeout for running tests under
   // a debugger.
@@ -358,7 +363,7 @@ export default function runTest262({
       if (expectedFailureLists) {
         expectedFailCount++;
       } else {
-        failures.push({ file: testRelPath, error: e });
+        failures.push({ file: fullPath ? path.resolve(testFile) : testRelPath, error: e });
         progress.interrupt(`FAIL: ${testDisplayName}`);
       }
     }
