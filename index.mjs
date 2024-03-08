@@ -177,7 +177,7 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
   function getHelperScript(includeName) {
     if (helpersCache.has(includeName)) return helpersCache.get(includeName);
 
-    const includeFile = `test262/harness/${includeName}`;
+    const includeFile = path.join(test262Dir, 'harness', includeName);
     const includeCode = fs.readFileSync(includeFile, UTF8);
     const include = new vm.Script(includeCode, {filename: path.resolve(includeFile)});
 
