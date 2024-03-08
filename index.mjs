@@ -285,7 +285,7 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
 
     // Include a sourceURL so that when tests are run in a debugger they can be
     // found using the names listed in the expected-failures-style files.
-    testCode += `\n//# sourceURL=${testRelPath}`;
+    testCode += `\n//# sourceURL=file://${testFile}`;
 
     const frontmatterString = frontmatterMatcher.exec(testCode)?.[1] ?? '';
     const frontmatter = yaml.load(frontmatterString);
@@ -319,7 +319,9 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
     // what it's supposed to be. This is so that you don't have to wait until the
     // end to see if your test failed.
     try {
-      vm.runInContext(testCode, testContext, { timeout: timeoutMsecs });
+      const testScript = new vm.Script(testCode, { filename: testFile });
+      testScript.runInContext(testContext, { timeout: timeoutMsecs });
+
       if (!expectedFailureLists) {
         passCount++;
       } else {
