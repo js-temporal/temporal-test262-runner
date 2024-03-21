@@ -440,9 +440,9 @@ export default function runTest262({
 
   if (missingTestsMap.size > 0) {
     if (updateExpectedFailureFiles) {
-      print(`\n${color.yellow.bold('WARNING:')} Test files missing; the following tests have been removed from their respective files:`);
+      print(`\n${color.yellow.bold('WARNING:')} Tests not found; references have been removed from the following expected-failure files:`);
     } else {
-      print(`\n${color.yellow.bold('WARNING:')} Test files missing; remove them from their respective files?`);
+      print(`\n${color.yellow.bold('WARNING:')} Tests not found; remove references from the following expected-failure files?`);
     }
     for (const [expectedFailureFile, missingTestsSet] of missingTestsMap) {
       if (updateExpectedFailureFiles) updateExpectedFailureFile(expectedFailureFile, missingTestsSet);
