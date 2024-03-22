@@ -77,7 +77,7 @@ const UTF8 = { encoding: 'utf-8' };
  * @property {number=} maxFailures Whether to stop executing test files after a
  *   certain number of failures have been reached. Useful for preventing your
  *   console from becoming overwhelmed.
- * @property {boolean=} fullPath Whether to print out the absoulte file paths
+ * @property {boolean=} fullPath Whether to print out the absolute file paths
  *   of test files in reports.
  *
  * @param {Options} options Object with the following properties:
@@ -115,7 +115,7 @@ const UTF8 = { encoding: 'utf-8' };
  *  - `maxFailures?: number` - Whether to stop executing test files after a
  *     certain number of failures have been reached. Useful for preventing your
  *     console from becoming overwhelmed.
- *  - `fullPath?: boolean` - Whether to print out the absoulte file paths
+ *  - `fullPath?: boolean` - Whether to print out the absolute file paths
  *     of test files in reports.
  * @returns {boolean} `true` if all tests completed as expected, `false` if not.
  */
