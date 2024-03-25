@@ -74,6 +74,11 @@ const UTF8 = { encoding: 'utf-8' };
  *   fix test failures, removing tests that were expected to fail but now pass
  *   from the expected-failure files. This option does not add newly failing
  *   tests to the expected-failure files - this must be done manually.
+ * @property {number=} maxFailures Whether to stop executing test files after a
+ *   certain number of failures have been reached. Useful for preventing your
+ *   console from becoming overwhelmed.
+ * @property {boolean=} fullPath Whether to print out the absolute file paths
+ *   of test files in reports.
  *
  * @param {Options} options Object with the following properties:
  *   - `polyfillCodeFile: string` - Filename of the Temporal polyfill. Must be a
@@ -107,10 +112,23 @@ const UTF8 = { encoding: 'utf-8' };
  *     fix test failures, removing tests that were expected to fail but now pass
  *     from the expected-failure files. This option does not add newly failing
  *     tests to the expected-failure files - this must be done manually.
+ *  - `maxFailures?: number` - Whether to stop executing test files after a
+ *     certain number of failures have been reached. Useful for preventing your
+ *     console from becoming overwhelmed.
+ *  - `fullPath?: boolean` - Whether to print out the absolute file paths
+ *     of test files in reports.
  * @returns {boolean} `true` if all tests completed as expected, `false` if not.
  */
-export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, expectedFailureFiles, timeoutMsecs, updateExpectedFailureFiles }) {
-
+export default function runTest262({
+  test262Dir,
+  testGlobs,
+  polyfillCodeFile,
+  expectedFailureFiles,
+  timeoutMsecs,
+  updateExpectedFailureFiles,
+  maxFailures,
+  fullPath
+}) {
   // Default timeout is 2 seconds. Set a longer timeout for running tests under
   // a debugger.
   timeoutMsecs = parseInt(timeoutMsecs);
@@ -177,7 +195,7 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
   function getHelperScript(includeName) {
     if (helpersCache.has(includeName)) return helpersCache.get(includeName);
 
-    const includeFile = `test262/harness/${includeName}`;
+    const includeFile = path.join(test262Dir, 'harness', includeName);
     const includeCode = fs.readFileSync(includeFile, UTF8);
     const include = new vm.Script(includeCode, {filename: path.resolve(includeFile)});
 
@@ -265,9 +283,16 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
   let passCount = 0;
   let expectedFailCount = 0;
   let unexpectedPassCount = 0;
+  let skippedCount = 0;
 
   // === The test loop ===
   for (const testFile of testFiles) {
+    // Skip test if over the max-failure limit
+    if (maxFailures && failures.length >= maxFailures) {
+      skippedCount++;
+      continue;
+    }
+
     // Set up the VM context with the polyfill first, as if it were built-in
     const testContext = {};
     vm.createContext(testContext);
@@ -285,7 +310,7 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
 
     // Include a sourceURL so that when tests are run in a debugger they can be
     // found using the names listed in the expected-failures-style files.
-    testCode += `\n//# sourceURL=${testRelPath}`;
+    testCode += `\n//# sourceURL=file://${testFile}`;
 
     const frontmatterString = frontmatterMatcher.exec(testCode)?.[1] ?? '';
     const frontmatter = yaml.load(frontmatterString);
@@ -319,7 +344,9 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
     // what it's supposed to be. This is so that you don't have to wait until the
     // end to see if your test failed.
     try {
-      vm.runInContext(testCode, testContext, { timeout: timeoutMsecs });
+      const testScript = new vm.Script(testCode, { filename: testFile });
+      testScript.runInContext(testContext, { timeout: timeoutMsecs });
+
       if (!expectedFailureLists) {
         passCount++;
       } else {
@@ -336,7 +363,7 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
       if (expectedFailureLists) {
         expectedFailCount++;
       } else {
-        failures.push({ file: testRelPath, error: e });
+        failures.push({ file: fullPath ? path.resolve(testFile) : testRelPath, error: e });
         progress.interrupt(`FAIL: ${testDisplayName}`);
       }
     }
@@ -348,6 +375,32 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
     }
 
     progress.tick(1, { test: progressDisplayName });
+  }
+
+  // === Detect expected-failure entries with missing files ===
+
+  const missingTestsMap = new Map();
+  let missingTestsCnt = 0;
+
+  if (testGlobs.length === 0) {
+    const testRelPathSet = new Set(
+      [...testFiles].map((testFile) => path.relative(testSubdirectory, testFile))
+    );
+
+    for (const [expectedFailureFile, expectedFailureTestsSet] of expectedFailureLists) {
+      const missingTestsSet = new Set();
+
+      for (const expectedFailureTest of expectedFailureTestsSet) {
+        if (!testRelPathSet.has(expectedFailureTest)) {
+          missingTestsSet.add(expectedFailureTest);
+          missingTestsCnt++;
+        }
+      }
+
+      if (missingTestsSet.size) {
+        missingTestsMap.set(expectedFailureFile, missingTestsSet);
+      }
+    }
   }
 
   // === Print results ===
@@ -378,9 +431,24 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
     }
     for (const [expectedFailureFile, unexpectedPassesSet] of unexpectedPasses) {
       if (updateExpectedFailureFiles) updateExpectedFailureFile(expectedFailureFile, unexpectedPassesSet);
-      print(` \u2022  ${expectedFailureFile}:`);
+      print(` \u2022 ${expectedFailureFile}:`);
       for (const unexpectedPass of unexpectedPassesSet) {
-        print(`${unexpectedPass}`);
+        print(`   \u2022 ${unexpectedPass}`);
+      }
+    }
+  }
+
+  if (missingTestsMap.size > 0) {
+    if (updateExpectedFailureFiles) {
+      print(`\n${color.yellow.bold('WARNING:')} Tests not found; references have been removed from the following expected-failure files:`);
+    } else {
+      print(`\n${color.yellow.bold('WARNING:')} Tests not found; remove references from the following expected-failure files?`);
+    }
+    for (const [expectedFailureFile, missingTestsSet] of missingTestsMap) {
+      if (updateExpectedFailureFiles) updateExpectedFailureFile(expectedFailureFile, missingTestsSet);
+      print(` \u2022 ${expectedFailureFile}:`);
+      for (const missingTest of missingTestsSet) {
+        print(`   \u2022 ${missingTest}`);
       }
     }
   }
@@ -397,16 +465,24 @@ export default function runTest262({ test262Dir, testGlobs, polyfillCodeFile, ex
   print(color.green(`  ${passCount} passed`));
   print(color.red(`  ${failures.length} failed`));
   print(color.red(`  ${unexpectedPassCount} passed unexpectedly`));
+
   if (expectedFailCount > 0) {
     print(color.cyan(`  ${expectedFailCount} expected failures`));
   }
+  if (missingTestsCnt > 0) {
+    print(color.cyan(`  ${missingTestsCnt} missing tests`));
+  }
+  if (skippedCount > 0) {
+    print(color.grey(`  ${skippedCount} skipped`));
+  }
+
   return !hasFailures;
 }
 
-function updateExpectedFailureFile(fileName, expectedFailuresInFile) {
+function updateExpectedFailureFile(fileName, linesForRemoval) {
     const linesOnDisk = fs
         .readFileSync(fileName, UTF8)
         .split(/\r?\n/g);
-    const output = linesOnDisk.filter(l => !expectedFailuresInFile.has(l));
+    const output = linesOnDisk.filter(l => !linesForRemoval.has(l));
     fs.writeFileSync(fileName, output.join('\n'), UTF8);
 }
