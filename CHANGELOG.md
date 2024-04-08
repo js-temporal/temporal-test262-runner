@@ -1,6 +1,15 @@
 
 # Change Log
 
+## 0.10.1
+* Support cancelling tests early once a certain number of failures have been
+  reached. Useful to prevent terminals from being overwhelemed
+  ([#16](https://github.com/js-temporal/temporal-test262-runner/pull/16)).
+* Support optionally printing the full filepath to failing Test262 files on
+  disk ([#16](https://github.com/js-temporal/temporal-test262-runner/pull/16)).
+* Test262 test cases have sourcemap URLs that correctly point to the right file
+  on disk ([#16](https://github.com/js-temporal/temporal-test262-runner/pull/16)).
+
 ## 0.10.0
 * Add time-zone-related DateTimeFormat test globs ([#14](https://github.com/js-temporal/temporal-test262-runner/pull/14))
 
