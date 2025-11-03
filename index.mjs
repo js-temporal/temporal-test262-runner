@@ -229,8 +229,7 @@ export default function runTest262({
     [
       path.resolve(testSubdirectory, '**/Temporal/**/*.js'),
       path.resolve(testSubdirectory, 'intl402/DateTimeFormat/**/*.js'),
-      // "p*" is a workaround because there is no toTemporalInstant dir at this time
-      path.resolve(testSubdirectory, 'built-ins/Date/p*/toTemporalInstant/*.js')
+      path.resolve(testSubdirectory, 'built-ins/Date/prototype/toTemporalInstant/*.js')
     ].forEach((defaultGlob) => globResults.push(...globSync(defaultGlob, GLOB_OPTS)));
   }
 
